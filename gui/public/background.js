@@ -73,22 +73,64 @@ function checkFocus(value) {
 function sendToActiveTab(action) {
     chrome.tabs.query(
         {
-            url: ["*://www.youtube.com/*"]
+            url: [
+                "*://*.youtube.com/*",
+                "*://youtube.com/*"
+            ]
         },
         (tabs) => {
-            if (!tabs || tabs.length === 0) return;
+            if (!tabs || tabs.length === 0) {
+                console.warn("BrainWave BG: No YouTube tabs found");
+                return;
+            }
 
-            const tabId = tabs[0].id;
-            if (!tabId) return;
+            for (let tab of tabs) {
+                if (!tab.id) continue;
 
-            chrome.tabs.sendMessage(tabId, { action }, () => {
-                const err = chrome.runtime.lastError;
-                if (err) {
-                    console.warn("BrainWave BG: sendMessage error:", err.message);
-                }
-            });
+                // Najpierw spróbuj wysłać PING żeby sprawdzić czy content script odpowiada
+                chrome.tabs.sendMessage(tab.id, { action: "PING" }, (response) => {
+                    const pingError = chrome.runtime.lastError;
+                    
+                    if (pingError) {
+                        console.warn(`BrainWave BG: PING failed for tab ${tab.id}, injecting content script:`, pingError.message);
+                        injectContentScript(tab.id);
+                        
+                        // Po wstrzyknięciu, poczekaj chwilę i wyślij akcję
+                        setTimeout(() => {
+                            chrome.tabs.sendMessage(tab.id, { action }, (response) => {
+                                const err = chrome.runtime.lastError;
+                                if (err) {
+                                    console.warn(`BrainWave BG: sendMessage error after injection for tab ${tab.id}:`, err.message);
+                                } else {
+                                    console.log(`BrainWave BG: ${action} sent successfully after injection to tab ${tab.id}`);
+                                }
+                            });
+                        }, 1000);
+                    } else {
+                        // Content script odpowiedział na PING, można wysłać akcję
+                        chrome.tabs.sendMessage(tab.id, { action }, (response) => {
+                            const err = chrome.runtime.lastError;
+                            if (err) {
+                                console.warn(`BrainWave BG: sendMessage error for tab ${tab.id}:`, err.message);
+                            } else {
+                                console.log(`BrainWave BG: ${action} sent successfully to tab ${tab.id}`);
+                            }
+                        });
+                    }
+                });
+                break; // Obsłuż tylko pierwszą kartę YouTube
+            }
         }
     );
+}
+
+function injectContentScript(tabId) {
+    chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['content.js']
+    }).catch(error => {
+        console.error("BrainWave BG: Failed to inject content script:", error);
+    });
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

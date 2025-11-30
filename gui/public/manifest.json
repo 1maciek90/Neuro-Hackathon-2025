@@ -9,10 +9,15 @@
   "content_scripts": [
     {
       "matches": [
-      "*://*.youtube.com/*",
-      "*://youtube.com/*"
-    ],
-      "js": ["content.js"]
+        "*://*.youtube.com/*",
+        "*://youtube.com/*",
+        "https://www.youtube.com/*",
+        "https://youtube.com/*",
+        "http://www.youtube.com/*",
+        "http://youtube.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
     }
   ],
 
