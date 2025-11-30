@@ -1,161 +1,105 @@
-// content.js - Ten skrypt działa w kontekście stron YouTube i PDF
-console.log("BrainWave Focus Content Script załadowany.");
+// =============================
+//  YouTube Focus Controller
+// =============================
+console.log("CONTENT.JS IS RUNNING!!!");
 
-const FOCUS_OVERLAY_ID = 'brainwave-focus-overlay';
-// Zmieniono: Usunięto rzutowanie (window as any)
-window.__brainwave_blink_interval = null; // Zapewnienie, że interwał jest globalny
+console.log("BrainWave Focus: content script loaded");
 
-/**
- * Szuka głównego elementu wideo na stronie YouTube i próbuje je kontrolować.
- * @returns {HTMLVideoElement | null}
- */
-function findAndControlVideo(action) {
-    // 1. UŻYJ BARDZIEJ UNIWERSALNEGO SELEKTORA
-    const videos = document.querySelectorAll('video');
-    let mainVideo = null;
+// Tworzymy overlay (ciemny ekran przy niskim skupieniu)
+let overlay = document.createElement("div");
+overlay.id = "brainwave-focus-overlay";
+overlay.style.position = "fixed";
+overlay.style.top = 0;
+overlay.style.left = 0;
+overlay.style.width = "100vw";
+overlay.style.height = "100vh";
+overlay.style.background = "rgba(0,0,0,0.7)";
+overlay.style.backdropFilter = "blur(4px)";
+overlay.style.zIndex = "999999";
+overlay.style.display = "none";
+overlay.style.color = "white";
+overlay.style.fontSize = "42px";
+overlay.style.fontWeight = "bold";
+overlay.style.justifyContent = "center";
+overlay.style.alignItems = "center";
+overlay.style.textAlign = "center";
+overlay.innerText = "Skup się! 😵‍💫";
+document.body.appendChild(overlay);
 
-    // 2. Weryfikacja, aby znaleźć GŁÓWNE wideo (nie miniatury ani reklamy)
-    for (const video of videos) {
-        // Musi być widoczne i mieć minimalne wymiary (zwykle działa na głównym odtwarzaczu YT)
-        if (video.offsetWidth > 100 && video.offsetHeight > 100 && video.offsetParent !== null) {
-            mainVideo = video;
-            break;
-        }
-    }
+// =============================
+// Funkcja: uzyskanie odtwarzacza YT
+// =============================
+function getYouTubePlayer() {
+    const player = document.querySelector("video");
+    return player;
+}
 
-    if (mainVideo) {
-        if (action === 'PAUSE' && !mainVideo.paused) {
-            mainVideo.pause();
-            console.log('BrainWave: Wideo YouTube ZATRZYMANE z powodu niskiego skupienia.');
-            return mainVideo;
-        } else if (action === 'RESUME' && mainVideo.paused) {
-            console.log('BrainWave: Skupienie powróciło.');
-            return mainVideo;
-        }
+// =============================
+// Funkcja: pauzowanie
+// =============================
+function pauseVideo() {
+    const player = document.querySelector("video");
+    console.log("pauseVideo() player =", player);
+    if (player) {
+        player.pause();
+        player.currentTime = player.currentTime; // wymuszenie repaint
+        overlay.style.display = "flex";
+        console.log("BrainWave → PAUSE wysłane do YouTube");
     } else {
-        // NIE znaleziono wideo - prawdopodobnie PDF lub inna strona, na której działa Content Script
-        console.warn('BrainWave: Nie znaleziono głównego elementu wideo na stronie (Tryb PDF/Inny).');
-    }
-    return null;
-}
-
-/**
- * Tworzy lub usuwa nakładkę, dostosowując styl do Trybu (PAUSE/RESUME)
- * @param {string} action 'PAUSE' lub 'RESUME'
- */
-function toggleOverlay(action) {
-    let overlay = document.getElementById(FOCUS_OVERLAY_ID);
-    // Używamy 'CHECK' jako akcji, która ma tylko sprawdzić istnienie wideo, bez pauzowania/wznawiania.
-    const videoFound = findAndControlVideo('CHECK') !== null; 
-
-    // ----------------------------------------------------
-    // PAUSE/AKTYWACJA OSTRZEŻENIA
-    // ----------------------------------------------------
-    if (action === 'PAUSE') {
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = FOCUS_OVERLAY_ID;
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: 999999999; 
-                pointer-events: none; 
-                opacity: 0;
-                transition: opacity 0.5s ease;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 40px;
-                color: black;
-                text-shadow: 0 0 10px white;
-                font-family: sans-serif;
-                font-weight: bold;
-            `;
-            if (document.body) {
-                document.body.appendChild(overlay);
-            } else {
-                console.error("BrainWave: Nie można dodać nakładki. Brak elementu <body>.");
-                return;
-            }
-        }
-        
-        overlay.style.opacity = '1';
-
-        if (videoFound) {
-            // TRYB YOUTUBE: Migająca nakładka (Czerwony/Biały)
-            overlay.innerHTML = '‼️ Wróć do Skupienia ‼️';
-            overlay.style.color = 'white';
-            
-            // Logika migania
-            // Zmieniono: Usunięto rzutowanie (window as any)
-            if (!window.__brainwave_blink_interval) {
-                window.__brainwave_blink_interval = setInterval(() => {
-                    const currentOverlay = document.getElementById(FOCUS_OVERLAY_ID);
-                    if (currentOverlay) {
-                        const isWhite = currentOverlay.style.backgroundColor.includes('255, 255, 255');
-                        currentOverlay.style.backgroundColor = isWhite 
-                            ? 'rgba(255, 0, 0, 0.4)' // Czerwony (przyciemnienie wideo)
-                            : 'rgba(255, 255, 255, 0.5)'; // Biały (alert)
-                    } else {
-                        // Zmieniono: Usunięto rzutowanie (window as any)
-                        clearInterval(window.__brainwave_blink_interval);
-                        window.__brainwave_blink_interval = null;
-                    }
-                }, 500);
-            }
-        } else {
-            // TRYB PDF/INNY: Stała biała nakładka
-            // W przypadku PDF chcemy, żeby ekran stał się bardzo jasny/biały.
-            // Zmieniono: Usunięto rzutowanie (window as any)
-            if (window.__brainwave_blink_interval) {
-                clearInterval(window.__brainwave_blink_interval);
-                window.__brainwave_blink_interval = null;
-            }
-            overlay.innerHTML = '‼️ Zbyt niski poziom koncentracji ‼️';
-            overlay.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; // Prawie pełna biel
-            overlay.style.color = 'black';
-        }
-
-    // ----------------------------------------------------
-    // RESUME/DEZAKTYWACJA OSTRZEŻENIA
-    // ----------------------------------------------------
-    } else if (action === 'RESUME' && overlay) {
-        // Zawsze czyścimy interwał
-        // Zmieniono: Usunięto rzutowanie (window as any)
-        if (window.__brainwave_blink_interval) {
-            clearInterval(window.__brainwave_blink_interval);
-            window.__brainwave_blink_interval = null;
-        }
-        
-        overlay.style.opacity = '0';
-        
-        // Usuń element po animacji
-        setTimeout(() => {
-            if(overlay && overlay.parentElement) {
-                overlay.parentElement.removeChild(overlay);
-            }
-        }, 500); 
+        console.error("BrainWave: Nie znaleziono elementu <video>");
     }
 }
 
 
-// Nasłuchuje wiadomości z pop-upu (Canvas App.tsx)
-chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
-        if (request.action === "PAUSE") {
-            // Jeśli znajdzie wideo, to je pauzuje, w przeciwnym razie tylko loguje.
-            findAndControlVideo('PAUSE');
-            // Nakładka jest kontrolowana na podstawie, czy wideo zostało znalezione wewnątrz toggleOverlay
-            toggleOverlay('PAUSE');
-            sendResponse({ status: "PAUSE_ACKNOWLEDGED" });
-        } else if (request.action === "RESUME") {
-            toggleOverlay('RESUME');
-            sendResponse({ status: "RESUME_ACKNOWLEDGED" });
-        }
-        // Zwraca true, aby asynchronicznie wysłać odpowiedź
-        return true; 
+// =============================
+// Funkcja: wznowienie
+// =============================
+function resumeVideo() {
+    const player = getYouTubePlayer();
+    if (player) {
+        player.play();
+        overlay.style.display = "none";
+        console.log("BrainWave → RESUME wysłane do YouTube");
+    } else {
+        console.error("BrainWave: Nie znaleziono elementu <video>");
     }
-);
+}
+
+// =============================
+// Nasłuchiwanie wiadomości z popupu
+// =============================
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    console.log("BrainWave content.js: odebrano wiadomość:", msg);
+
+    if (msg.action === "PAUSE") {
+        console.log("BrainWave content.js: wykonuję PAUSE");
+        pauseVideo();
+        overlay.style.display = "flex";
+        sendResponse?.({ status: "paused" });
+    }
+    
+    if (msg.action === "RESUME") {
+        console.log("BrainWave content.js: wykonuję RESUME");
+        resumeVideo();
+        overlay.style.display = "none";
+        sendResponse?.({ status: "resumed" });
+    }
+});
+
+
+
+// =============================
+// Obsługa zmian w SPA YouTube (zmiana filmu bez przeładowania)
+// =============================
+let lastUrl = location.href;
+new MutationObserver(() => {
+    const url = location.href;
+    if (url !== lastUrl) {
+        console.log("BrainWave: YT URL changed → reinit");
+        lastUrl = url;
+
+        overlay.style.display = "none";
+    }
+}).observe(document, { subtree: true, childList: true });
+
+console.log("BrainWave Focus: content script initialized");

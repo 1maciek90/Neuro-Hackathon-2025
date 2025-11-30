@@ -291,37 +291,19 @@ export default function App() {
     // Aktualizacja stanu i Chrome Storage
     const handleLearningModeChange = (value: boolean) => {
         setLearningMode(value);
-        
-        // Jeśli tryb nauki jest wyłączany, upewnij się, że stan ostrzeżenia jest resetowany i wideo odblokowane
-        if (!value) {
-            setIsConcentrating(true);
-            
-            // Natychmiastowe wysłanie RESUME, aby zwolnić wideo/ekran po wyłączeniu trybu nauki
-            const sendResumeOnToggleOff = () => {
-                 if (typeof chrome !== "undefined" && chrome.tabs) {
-                    // Targetujemy obie potencjalne karty
-                    const queryOptions = { active: true, currentWindow: true, url: ["*://www.youtube.com/*", "*://*/*.pdf"] };
-                    
-                    chrome.tabs.query(queryOptions, (tabs) => {
-                        if (tabs.length > 0 && tabs[0].id) {
-                            chrome.tabs.sendMessage(tabs[0].id, { action: 'RESUME' }, () => {
-                                // Ignorujemy błędy
-                            });
-                        }
-                    });
-                }
-            };
-            sendResumeOnToggleOff();
-        }
-        
+
         try {
-            if (typeof chrome !== "undefined" && chrome.storage) {
-                chrome.storage.local.set({ learningMode: value });
-            }
+            chrome.runtime.sendMessage({
+                type: "SET_LEARNING_MODE",
+                value
+            });
+
+            chrome.storage.local.set({ learningMode: value });
         } catch (e) {
-            console.warn("Failed to save to chrome.storage", e);
+            console.warn("Failed to send message to background", e);
         }
     };
+
 
     if (isLoading) {
         return (

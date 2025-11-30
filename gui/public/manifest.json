@@ -2,25 +2,21 @@
   "manifest_version": 3,
   "name": "BrainWave Focus",
   "version": "1.0",
-  "action": {
-    "default_popup": "index.html"
-    
+  "permissions": ["storage", "tabs", "activeTab", "scripting"],
+  "background": {
+    "service_worker": "background.js"
   },
-  "permissions": [
-    "storage", 
-    "tabs",           
-    "activeTab",
-    "scripting"       
-  ],
-  "host_permissions": [
-    "*://www.youtube.com/*",
-    "*://*/*.pdf"
-  ],
   "content_scripts": [
     {
-      "matches": ["*://www.youtube.com/*", "*://*/*.pdf"],
-      "js": ["content.js"], 
-      "run_at": "document_idle"
+      "matches": [
+      "*://*.youtube.com/*",
+      "*://youtube.com/*"
+    ],
+      "js": ["content.js"]
     }
-  ]
+  ],
+
+  "action": {
+    "default_popup": "index.html"
+  }
 }
