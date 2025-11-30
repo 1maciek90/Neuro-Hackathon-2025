@@ -1,0 +1,15 @@
+{
+	"manifest_version": 3,
+	"name": "Brain Wave Focus",
+	"version": "1.0",
+
+	"permissions": ["storage"],
+
+	"icons": {
+		"128": "icon128.png"
+	},
+	"description": "Stay focused during learning",
+	"action": {
+		"default_popup": "index.html"
+	}
+}
