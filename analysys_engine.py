@@ -130,7 +130,7 @@ class AnalysisEngine:
                             self.prev_focus = focus_smoothed
 
                             self.TS.append(focus_smoothed)
-                            if len(self.TS) >= 6:
+                            if len(self.TS) >= 2:
                                 srednia = sum(self.TS) / len(self.TS)
                                 final_score = np.clip(srednia, 0.0, 100.0)
                                 
