@@ -5,7 +5,6 @@ console.log("CONTENT.JS IS RUNNING!!!");
 
 console.log("BrainWave Focus: content script loaded");
 
-// Tworzymy overlay (ciemny ekran przy niskim skupieniu)
 let overlay = document.createElement("div");
 overlay.id = "brainwave-focus-overlay";
 overlay.style.position = "fixed";
@@ -26,23 +25,17 @@ overlay.style.textAlign = "center";
 overlay.innerText = "Skup się! 😵‍💫";
 document.body.appendChild(overlay);
 
-// =============================
-// Funkcja: uzyskanie odtwarzacza YT
-// =============================
 function getYouTubePlayer() {
     const player = document.querySelector("video");
     return player;
 }
 
-// =============================
-// Funkcja: pauzowanie
-// =============================
 function pauseVideo() {
     const player = document.querySelector("video");
     console.log("pauseVideo() player =", player);
     if (player) {
         player.pause();
-        player.currentTime = player.currentTime; // wymuszenie repaint
+        player.currentTime = player.currentTime; 
         overlay.style.display = "flex";
         console.log("BrainWave → PAUSE wysłane do YouTube");
     } else {
@@ -50,10 +43,6 @@ function pauseVideo() {
     }
 }
 
-
-// =============================
-// Funkcja: wznowienie
-// =============================
 function resumeVideo() {
     const player = getYouTubePlayer();
     if (player) {
@@ -65,9 +54,6 @@ function resumeVideo() {
     }
 }
 
-// =============================
-// Nasłuchiwanie wiadomości z popupu
-// =============================
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     console.log("BrainWave content.js: odebrano wiadomość:", msg);
 
@@ -86,11 +72,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
 });
 
-
-
-// =============================
-// Obsługa zmian w SPA YouTube (zmiana filmu bez przeładowania)
-// =============================
 let lastUrl = location.href;
 new MutationObserver(() => {
     const url = location.href;

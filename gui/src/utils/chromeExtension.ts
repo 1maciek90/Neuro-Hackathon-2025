@@ -1,12 +1,6 @@
 import type { ChromeMessage, ChromeStorageData, ChromeBackgroundMessage } from '../types';
 
-/**
- * Chrome extension utility functions
- */
 
-/**
- * Load learning mode from Chrome storage
- */
 export const loadLearningMode = (): Promise<boolean> => {
     return new Promise((resolve) => {
         try {
@@ -25,9 +19,7 @@ export const loadLearningMode = (): Promise<boolean> => {
     });
 };
 
-/**
- * Check if the active tab is YouTube or PDF
- */
+
 export const checkActiveTabType = (): Promise<{ isYouTube: boolean; isPdf: boolean }> => {
     return new Promise((resolve) => {
         try {
@@ -53,9 +45,7 @@ export const checkActiveTabType = (): Promise<{ isYouTube: boolean; isPdf: boole
     });
 };
 
-/**
- * Send warning message to content script
- */
+
 export const sendWarningMessage = (
     action: 'PAUSE' | 'RESUME',
     isYouTubeActive: boolean,
@@ -75,7 +65,6 @@ export const sendWarningMessage = (
                 
                 chrome.tabs.sendMessage(tabId, { action: action } as ChromeMessage, (response) => {
                     if (chrome.runtime.lastError) {
-                        // Ignorujemy błędy Content Script
                     } else if (response) {
                         console.log("Odebrano odpowiedź z Content Script:", response.status);
                     }
@@ -85,9 +74,6 @@ export const sendWarningMessage = (
     }
 };
 
-/**
- * Update learning mode in Chrome storage and send message to background script
- */
 export const updateLearningMode = (value: boolean): void => {
     try {
         const message: ChromeBackgroundMessage = {

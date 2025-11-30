@@ -1,39 +1,31 @@
 import { useEffect, useState } from "react";
 
-// Imported components
 import GlassPanel from './components/GlassPanel';
 import Toggle from './components/Toggle';
 import ConcentrationDisplay from './components/ConcentrationDisplay';
 import { EegStatusDisplay, PageStatusDisplay, WarningStatusDisplay } from './components/StatusDisplay';
 
-// Imported hooks and utilities
 import { useWebSocket } from './hooks/useWebSocket';
 import { loadLearningMode, checkActiveTabType, sendWarningMessage, updateLearningMode } from './utils/chromeExtension';
 
-// ⚠️ WAŻNE: Adres serwera Pythona
 const WS_URL = 'ws://127.0.0.1:8000/ws/focus'; 
-const LOW_FOCUS_THRESHOLD = 20; // Próg do aktywacji ostrzeżenia
+const LOW_FOCUS_THRESHOLD = 20; 
 
 export default function App() {
-    // State management
     const [learningMode, setLearningMode] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isConcentrating, setIsConcentrating] = useState<boolean>(true);
     const [isYouTubeActive, setIsYouTubeActive] = useState<boolean>(false);
     const [isPdfActive, setIsPdfActive] = useState<boolean>(false);
     
-    // WebSocket hook
     const { connectionStatus, eegStatus, averageConcentration } = useWebSocket(WS_URL);
 
-    // Load initial data from Chrome extension
     useEffect(() => {
         const loadData = async () => {
             try {
-                // Load learning mode from storage
                 const learningModeValue = await loadLearningMode();
                 setLearningMode(learningModeValue);
 
-                // Check active tab type
                 const { isYouTube, isPdf } = await checkActiveTabType();
                 setIsYouTubeActive(isYouTube);
                 setIsPdfActive(isPdf);
@@ -48,9 +40,7 @@ export default function App() {
         loadData();
     }, []); 
 
-    // Warning logic and message sending
     useEffect(() => {
-        // If learning mode is disabled, send RESUME and return
         if (!learningMode) {
             if (!isConcentrating) {
                 setIsConcentrating(true);
@@ -59,20 +49,17 @@ export default function App() {
             return; 
         }
 
-        // If learning mode is ON but we're not on YT or PDF, don't do PAUSE
         if (learningMode && !isYouTubeActive && !isPdfActive) {
             return;
         }
 
         const isBelowThreshold = averageConcentration < LOW_FOCUS_THRESHOLD;
 
-        // Activate warning
         if (isBelowThreshold && isConcentrating) {
             console.log(`POZIOM KRYTYCZNY: ${averageConcentration.toFixed(0)}%. Aktywacja ostrzeżenia.`);
             setIsConcentrating(false);
             sendWarningMessage('PAUSE', isYouTubeActive, isPdfActive);
         } 
-        // Deactivate warning
         else if (!isBelowThreshold && !isConcentrating) {
             console.log(`POWRÓT DO SKUPIENIA: ${averageConcentration.toFixed(0)}%. Dezaktywacja ostrzeżenia.`);
             setIsConcentrating(true);
@@ -81,7 +68,6 @@ export default function App() {
     }, [averageConcentration, learningMode, isConcentrating, isYouTubeActive, isPdfActive]);
 
 
-    // Handle learning mode change
     const handleLearningModeChange = (value: boolean) => {
         setLearningMode(value);
         updateLearningMode(value);
@@ -100,7 +86,7 @@ export default function App() {
     return (
         <div className="flex w-[340px] min-h-[260px] bg-[#0d1117] text-white p-6 font-sans">
             <GlassPanel>
-                {/* Nagłówek */}
+                {/* Naglowek */}
                 <div className="flex items-center gap-2 mb-3">
                     <div className="w-6 h-6 rounded-full bg-teal-400 flex items-center justify-center text-black font-bold">
                         🧠
@@ -130,7 +116,7 @@ export default function App() {
                     isLearningMode={learningMode} 
                 />
                 
-                {/* Status ostrzeżenia */}
+                {/* Status ostrzezenia */}
                 <WarningStatusDisplay 
                     learningMode={learningMode}
                     isConcentrating={isConcentrating}

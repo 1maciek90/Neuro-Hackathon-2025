@@ -8,7 +8,6 @@ from brainaccess.core.eeg_manager import EEGManager
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# --- STAŁE (JAK W ORYGINALE) ---
 DEVICE_NAME = "BA MINI 046"
 SFREQ = 250.0
 WINDOW_LEN = 3
@@ -25,7 +24,6 @@ CAP: dict = {
 
 EPS = 1e-12
 
-# --- FUNKCJE POMOCNICZE (BEZ ZMIAN W LOGICE) ---
 def bandpass_filter(data, fs, low=1.0, high=40.0, order=4):
     """Filtrowanie pasmowoprzepustowe danych EEG."""
     nyq = fs / 2.0
@@ -51,7 +49,6 @@ def calculate_focus_score(eeg_data, fs, nperseg_sec=2.0):
     beta_power = np.sum(mean_psd[beta_idxs]) + EPS
     alpha_power = np.sum(mean_psd[alpha_idxs]) + EPS
 
-    # Obliczenie wskaźnika skupienia
     weight_alpha = 0.3
     combined = beta_power + weight_alpha * alpha_power
     ratio_combined = combined / theta_power
@@ -82,20 +79,19 @@ class AnalysisEngine:
         self._latest_focus_score = 0.0
         self.prev_focus = None
         self.TS = []
-        self.connection_status = "Nieaktywny" # Domyślny stan, gdy silnik jest zatrzymany
+        self.connection_status = "Nieaktywny"
         logging.info("--- KONIEC INICJALIZACJI SILNIKA ---")
 
     def _analysis_loop(self):
         logging.info(f"Wątek analizy startuje. Łączenie z {DEVICE_NAME}...")
         try:
-            self.connection_status = "Łączenie..." # Status: Próba połączenia
+            self.connection_status = "Łączenie..." 
             
             with EEGManager() as mgr:
-                # 💡 TUTAJ NASTĘPUJE PRÓBA POŁĄCZENIA
                 self.eeg.setup(mgr, device_name=DEVICE_NAME, cap=CAP, sfreq=SFREQ)
                 self.eeg.start_acquisition()
                 
-                self.connection_status = "Połączono z EEG" # Status: Sukces
+                self.connection_status = "Połączono z EEG" 
                 logging.info("Akwizycja rozpoczęta. Czekam na bufor...")
                 time.sleep(2.0) 
 
@@ -143,12 +139,11 @@ class AnalysisEngine:
                     time.sleep(sleep_time)
 
         except Exception as e:
-            # Ustaw status błędu połączenia
             self.connection_status = f"BŁĄD POŁĄCZENIA: {e.__class__.__name__}"
             logging.critical(f"KRYTYCZNY BŁĄD WĄTKU ANALIZY (Połączenie/Akwizycja): {e}")
         finally:
             self.stop_acquisition_resources()
-            self.connection_status = "Rozłączono" # Końcowy stan wątku po zakończeniu pętli
+            self.connection_status = "Rozłączono"
             logging.info("Wątek analizy zakończył działanie.")
 
 
@@ -175,10 +170,9 @@ class AnalysisEngine:
         """Zatrzymuje wątek analizy."""
         if self._is_running:
             self._is_running = False
-            # Czekamy, aż wątek się zakończy (wykona sekcję finally)
             if self._thread and self._thread.is_alive():
                 self._thread.join(timeout=2.0) 
-            self.connection_status = "Nieaktywny" # Ostateczny stan po zatrzymaniu
+            self.connection_status = "Nieaktywny"
             logging.info("Silnik analityczny zatrzymany.")
 
 
