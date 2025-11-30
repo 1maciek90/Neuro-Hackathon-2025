@@ -1,13 +1,3 @@
-import sys
-import os
-
-BASE = os.path.dirname(os.path.abspath(__file__))
-
-# DODAJEMY WŁAŚCIWY FOLDER DO ŚCIEŻKI
-sys.path.append(os.path.join(BASE, "BrainAccessSDK-windows", "python_api"))
-
-
-
 import time
 import numpy as np
 from scipy.signal import welch, butter, filtfilt
@@ -17,10 +7,10 @@ from brainaccess.core.eeg_manager import EEGManager
 # --- KONFIGURACJA ---
 DEVICE_NAME = "BA MINI 046"
 SFREQ = 250.0         # Hz
-WINDOW_LEN = 3.0      # s (okno analizowane)
+WINDOW_LEN = 3      # s (okno analizowane)
 UPDATE_INTERVAL = 0.5 # s (jak często wypisywać wynik)
-EMA_ALPHA = 0.12      # wygładzanie (mniejsze = bardziej gładkie)
-BANDPASS_LOW = 1.0    # Hzvvv
+EMA_ALPHA = 0.16      # wygładzanie (mniejsze = bardziej gładkie)
+BANDPASS_LOW = 1.0    # Hz
 BANDPASS_HIGH = 40.0  # Hz
 MICROV_MULTIPLIER = 1e6  # jeśli chcesz przeliczyć V -> µV
 
@@ -62,13 +52,14 @@ def calculate_focus_score(eeg_data, fs, nperseg_sec=2.0):
     combined = beta_power + weight_alpha * alpha_power
     ratio_combined = combined / theta_power
 
-    scale_factor = 5.0
+    scale_factor = 4.0
     score = 100.0 * np.log1p(scale_factor * ratio_combined) / np.log1p(scale_factor * 3.0)
     score = np.clip(score, 0.0, 100.0)
 
     return float(score), float(ratio), float(theta_power), float(beta_power), float(alpha_power)
 
 # === GŁÓWNA PĘTLA ===
+TW = []
 if __name__ == "__main__":
     print("Start programu...")
     eeg = acquisition.EEG()
@@ -83,6 +74,8 @@ if __name__ == "__main__":
         try:
             last_sample_count = 0
             prev_focus = None
+            
+            TS = []
 
             while True:
                 loop_start = time.time()
@@ -136,6 +129,7 @@ if __name__ == "__main__":
                         # przeskalowanie focus 30-70 → 0-100
                         focus_scaled = (focus_smoothed - 30.0) / (70.0 - 30.0) * 100.0
                         focus_scaled = np.clip(focus_scaled, 0.0, 100.0)
+                        #return do programu to focus_scaled
 
                         # pasek dla focus
                         bars_focus = int(np.round(focus_scaled / 5.0))
@@ -156,18 +150,30 @@ if __name__ == "__main__":
                         else:
                             conc_text = "NISKA "
 
-                        print(f"Skupienie: {focus_scaled:6.2f} {progress_focus} | Konc: {concentration_scaled:3.0f}% ({conc_text}) | Proc: {processing_time*1000:6.1f} ms | Delay: {delay:5.3f} s")
-                        print(progress_conc)
-                        print(f"  (theta: {theta_power:.3e}, beta: {beta_power:.3e}, alpha: {alpha_power:.3e}, ratio: {ratio:.4f})")
+                        # print(f"Skupienie: {focus_scaled:6.2f} {progress_focus} | Konc: {concentration_scaled:3.0f}% ({conc_text}) | Proc: {processing_time*1000:6.1f} ms | Delay: {delay:5.3f} s")
+                        # print(progress_conc)
+                        # print(f"  (theta: {theta_power:.3e}, beta: {beta_power:.3e}, alpha: {alpha_power:.3e}, ratio: {ratio:.4f})")
 
+                        TS.append(focus_scaled)
+                        if(len(TS)  == 20 ):
+                            srednia = sum(TS)/len(TS)
+                            print("SKUPIENIE:", srednia)
+                            TW.append(srednia)
+                            TS.clear()
+                        
+                        
+                        
                 elapsed = time.time() - loop_start
                 sleep_time = max(0.0, UPDATE_INTERVAL - elapsed)
                 time.sleep(sleep_time)
 
+        
+        
         except KeyboardInterrupt:
             print("\nZatrzymywanie...")
         finally:
             eeg.stop_acquisition()
             mgr.disconnect()
             eeg.close()
+            
             print("Rozłączono.")
